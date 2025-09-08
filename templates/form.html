@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Chart Generator</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        h1 { color: #333; text-align: center; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #555; }
+        input, textarea { width: 100%; padding: 0.75rem; margin-bottom: 1.5rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        textarea { resize: vertical; }
+        button { width: 100%; padding: 0.8rem; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .loading-text { font-size: 1.5rem; font-weight: bold; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bubble Chart Generator</h1>
+        <form action="/generate-chart/" method="post" id="chart-form">
+            <div>
+                <label for="account_id">Account ID:</label>
+                <input type="number" id="account_id" name="account_id" required placeholder="e.g., 1505">
+            </div>
+            <div>
+                <label for="market_configs_text">Market Configurations:</label>
+                <textarea id="market_configs_text" name="market_configs_text" rows="10" required placeholder="Paste configurations here, one per line.&#10;Format: Market,WorkspaceID,SearchEngineID,DeviceName&#10;Example:&#10;AE,53507,259,Mobile&#10;AE,53507,233,Desktop"></textarea>
+            </div>
+            <button type="submit">Generate Chart</button>
+        </form>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-text">Vibecoding... Please wait, fetching and processing data ✨</div>
+    </div>
+
+    <script>
+        document.getElementById('chart-form').addEventListener('submit', function() {
+            document.getElementById('loading-overlay').style.display = 'flex';
+        });
+    </script>
+</body>
+</html>
