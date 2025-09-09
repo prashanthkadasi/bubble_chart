@@ -2,32 +2,34 @@
 
 import pandas as pd
 import plotly.express as px
+import json
+from typing import Dict, Any
 
-
-def create_bubble_chart(df: pd.DataFrame) -> str:
+def create_bubble_chart(df: pd.DataFrame) -> Dict[str, Any]:
     """
-    Generates an interactive bubble chart from the final processed data.
+    Generates an interactive bubble chart and returns it along with the data.
 
     Args:
-        df: The final DataFrame from processing.py, containing growth, sentiment,
-            and search volume data.
+        df: The final DataFrame from processing.py.
 
     Returns:
-        An HTML string representing the interactive chart, or a message if no data exists.
+        A dictionary containing the chart's HTML representation and the chart's data as a JSON string.
     """
     if df.empty:
-        return "<h3>No data available to generate a chart. Please check your inputs.</h3>"
+        return {
+            "html": "<h3>No data available to generate a chart. Please check your inputs.</h3>",
+            "data_json": "{}"
+        }
 
     # --- Data Preparation and Column Mapping ---
     chart_df = df.copy()
-    chart_df['sentiment_score'] = pd.to_numeric(
-        chart_df['sentiment_score'], errors='coerce').fillna(0)
-    chart_df['growth_pct'] = pd.to_numeric(
-        chart_df['growth_pct'], errors='coerce').fillna(0)
-    chart_df['search_volume_12m_avg'] = pd.to_numeric(
-        chart_df['search_volume_12m_avg'], errors='coerce').fillna(0)
+
+    # Ensure numeric columns are numeric, filling NaNs
+    for col in ['sentiment_score', 'growth_pct', 'search_volume_12m_avg']:
+        chart_df[col] = pd.to_numeric(chart_df[col], errors='coerce').fillna(0)
 
     # --- Create the Plotly Figure ---
+    # Initial view: color by Category, size by search_volume_12m_avg
     fig = px.scatter(
         chart_df,
         x='sentiment_score',
@@ -35,6 +37,7 @@ def create_bubble_chart(df: pd.DataFrame) -> str:
         size='search_volume_12m_avg',
         color='Category',
         hover_name='SearchTerm',
+        custom_data=['Market', 'Category', 'SearchTerm', 'search_volume_12m_avg'], # Add all potential data to custom_data
         size_max=60,
         title="Growth vs. Sentiment Analysis",
         labels={
@@ -47,18 +50,25 @@ def create_bubble_chart(df: pd.DataFrame) -> str:
     )
 
     # --- Enhance the Layout for Better Analysis ---
-    fig.add_vline(x=0, line_width=1, line_dash="dash", line_color="grey")
-    fig.add_hline(y=0, line_width=1, line_dash="dash", line_color="grey")
-
     fig.update_layout(
-        height=600,
+        height=700,
         showlegend=True,
         xaxis_title="← Negative Sentiment | Positive Sentiment →",
         yaxis_title="← Decline | Growth →",
-        title_x=0.5
+        title_x=0.5,
+        legend_title_text='Color By'
     )
+    fig.add_vline(x=0, line_width=1, line_dash="dash", line_color="grey")
+    fig.add_hline(y=0, line_width=1, line_dash="dash", line_color="grey")
 
-    # --- Convert to HTML ---
-    chart_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
+    # --- Convert to HTML and JSON ---
+    chart_html = fig.to_html(full_html=False, include_plotlyjs='cdn', div_id='bubble-chart')
 
-    return chart_html
+    # Prepare data for frontend: Convert dataframe to a dictionary of lists
+    chart_data_dict = chart_df.to_dict(orient='list')
+    chart_data_json = json.dumps(chart_data_dict)
+
+    return {
+        "html": chart_html,
+        "data_json": chart_data_json
+    }

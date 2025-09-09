@@ -78,7 +78,9 @@ async def generate_chart(request: Request,
 
     # 5. Generate the Interactive Chart
     print("Step 5: Generating the bubble chart...")
-    chart_html = charting.create_bubble_chart(final_chart_df)
+    chart_payload = charting.create_bubble_chart(final_chart_df)
+    chart_html = chart_payload["html"]
+    chart_data_json = chart_payload["data_json"]
 
     # 6. Save data for download
     file_id = str(uuid.uuid4())
@@ -101,6 +103,7 @@ async def generate_chart(request: Request,
     return templates.TemplateResponse("result.html", {
         "request": request,
         "chart_html": chart_html,
+        "chart_data_json": chart_data_json,
         "file_id": file_id,
         "summary": summary
     })

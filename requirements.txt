@@ -9,4 +9,3 @@ python-multipart  # Needed for form handling
 jinja2            # For HTML templates
 python-dotenv
 httpx
-vaderSentiment
