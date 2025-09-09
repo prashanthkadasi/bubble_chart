@@ -3,43 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bubble Chart Generator</title>
+    <title>Market Sentiment Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
-        h1 { color: #333; text-align: center; }
-        label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #555; }
-        input, textarea { width: 100%; padding: 0.75rem; margin-bottom: 1.5rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
-        textarea { resize: vertical; }
-        button { width: 100%; padding: 0.8rem; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background-color 0.2s; }
-        button:hover { background-color: #0056b3; }
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .loading-text { font-size: 1.5rem; font-weight: bold; color: #333; }
+        :root {
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --background-color: #f8f9fa;
+            --form-background: #ffffff;
+            --text-color: #333;
+            --label-color: #555;
+            --border-color: #dee2e6;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: var(--form-background);
+            padding: 2.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 650px;
+            text-align: center;
+        }
+        header {
+            margin-bottom: 2rem;
+        }
+        h1 {
+            color: var(--text-color);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        p.subtitle {
+            color: var(--label-color);
+            font-size: 1rem;
+            margin-top: 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--label-color);
+            text-align: left;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        button {
+            width: 100%;
+            padding: 0.9rem;
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.1);
+        }
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: var(--primary-color);
+            animation: spin 1s ease infinite;
+            margin-bottom: 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text { font-size: 1.25rem; font-weight: 600; color: #333; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Bubble Chart Generator</h1>
+        <header>
+            <h1>Market Sentiment Analyzer</h1>
+            <p class="subtitle">Enter your details below to generate a Growth vs. Sentiment bubble chart.</p>
+        </header>
         <form action="/generate-chart/" method="post" id="chart-form">
             <div>
-                <label for="account_id">Account ID:</label>
+                <label for="account_id">Pi Datametrics Account ID:</label>
                 <input type="number" id="account_id" name="account_id" required placeholder="e.g., 1505">
             </div>
             <div>
                 <label for="market_configs_text">Market Configurations:</label>
-                <textarea id="market_configs_text" name="market_configs_text" rows="10" required placeholder="Paste configurations here, one per line.&#10;Format: Market,WorkspaceID,SearchEngineID,DeviceName&#10;Example:&#10;AE,53507,259,Mobile&#10;AE,53507,233,Desktop"></textarea>
+                <textarea id="market_configs_text" name="market_configs_text" rows="8" required placeholder="Paste one configuration per line.&#10;Format: Market,WorkspaceID,SearchEngineID,DeviceName&#10;Example:&#10;AE,53507,259,Mobile&#10;UK,53508,233,Desktop"></textarea>
             </div>
-            <button type="submit">Generate Chart</button>
+            <button type="submit">✨ Generate Analysis</button>
         </form>
     </div>
 
     <div class="loading-overlay" id="loading-overlay">
-        <div class="loading-text">Vibecoding... Please wait, fetching and processing data ✨</div>
+        <div class="spinner"></div>
+        <div class="loading-text">Analyzing your data... this may take a moment.</div>
     </div>
 
     <script>
         document.getElementById('chart-form').addEventListener('submit', function() {
-            document.getElementById('loading-overlay').style.display = 'flex';
+            // Basic validation
+            const accountId = document.getElementById('account_id').value;
+            const configs = document.getElementById('market_configs_text').value;
+            if (accountId && configs) {
+                document.getElementById('loading-overlay').style.display = 'flex';
+            }
         });
     </script>
 </body>

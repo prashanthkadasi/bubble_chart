@@ -3,6 +3,7 @@
 import pandas as pd
 import plotly.express as px
 
+
 def create_bubble_chart(df: pd.DataFrame) -> str:
     """
     Generates an interactive bubble chart from the final processed data.
@@ -19,9 +20,12 @@ def create_bubble_chart(df: pd.DataFrame) -> str:
 
     # --- Data Preparation and Column Mapping ---
     chart_df = df.copy()
-    chart_df['sentiment_score'] = pd.to_numeric(chart_df['sentiment_score'], errors='coerce').fillna(0)
-    chart_df['growth_pct'] = pd.to_numeric(chart_df['growth_pct'], errors='coerce').fillna(0)
-    chart_df['search_volume_12m_avg'] = pd.to_numeric(chart_df['search_volume_12m_avg'], errors='coerce').fillna(0)
+    chart_df['sentiment_score'] = pd.to_numeric(
+        chart_df['sentiment_score'], errors='coerce').fillna(0)
+    chart_df['growth_pct'] = pd.to_numeric(
+        chart_df['growth_pct'], errors='coerce').fillna(0)
+    chart_df['search_volume_12m_avg'] = pd.to_numeric(
+        chart_df['search_volume_12m_avg'], errors='coerce').fillna(0)
 
     # --- Create the Plotly Figure ---
     fig = px.scatter(
@@ -56,5 +60,5 @@ def create_bubble_chart(df: pd.DataFrame) -> str:
 
     # --- Convert to HTML ---
     chart_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
-    
+
     return chart_html
