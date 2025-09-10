@@ -21,12 +21,12 @@
             margin: 0;
             padding: 2rem;
         }
-        .main-container { max-width: 1600px; margin: auto; }
+        .main-container { max-width: 1800px; margin: auto; }
         header { text-align: center; margin-bottom: 2rem; }
         h1 { color: var(--text-color); font-weight: 700; }
         .content-grid {
             display: grid;
-            grid-template-columns: 300px 1fr; /* Controls on left, chart on right */
+            grid-template-columns: 350px 1fr; /* Controls on left, chart on right */
             gap: 2rem;
             align-items: flex-start;
         }
@@ -35,12 +35,15 @@
             padding: 2rem;
             border-radius: 8px;
             box-shadow: var(--shadow);
+            min-height: 750px;
         }
         .controls-container {
             background: var(--container-background);
             padding: 1.5rem;
             border-radius: 8px;
             box-shadow: var(--shadow);
+            max-height: 80vh;
+            overflow-y: auto;
         }
         .controls-container h2 {
             font-size: 1.5rem;
@@ -48,6 +51,10 @@
             margin-bottom: 1.5rem;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 0.75rem;
+            position: sticky;
+            top: -1.5rem;
+            background: var(--container-background);
+            z-index: 10;
         }
         .control-item, .summary-item {
             margin-bottom: 1.25rem;
@@ -67,20 +74,26 @@
             font-family: 'Inter', sans-serif;
             font-size: 1rem;
         }
+        select[multiple] {
+            height: 150px;
+        }
         .actions { margin-top: 2rem; text-align: center; }
-        a.button {
+        a.button, button.button {
             display: inline-block; padding: 0.8rem 1.5rem; border-radius: 5px;
             text-decoration: none; font-weight: 600; transition: all 0.3s ease;
-            width: 100%; box-sizing: border-box;
+            width: 100%; box-sizing: border-box; border: none; font-size: 1rem;
+            cursor: pointer;
         }
         a.download-btn { background-color: var(--primary-color); color: white; margin-bottom: 1rem; }
         a.download-btn:hover { background-color: #0056b3; }
         a.back-btn { color: var(--primary-color); background-color: transparent; }
         a.back-btn:hover { text-decoration: underline; }
+        button.reset-btn { background-color: #6c757d; color: white; margin-bottom: 1rem;}
+        button.reset-btn:hover { background-color: #5a6268; }
 
-        @media (max-width: 992px) {
+        @media (max-width: 1200px) {
             .content-grid { grid-template-columns: 1fr; }
-            .controls-container { order: -1; }
+            .controls-container { order: -1; max-height: none; }
         }
     </style>
 </head>
@@ -95,29 +108,36 @@
                 <h2>Chart Controls</h2>
                 <div class="control-item">
                     <label for="color-by-select">Color Bubbles By:</label>
-                    <select id="color-by-select">
+                    <select id="color-by-select" class="chart-control">
                         <option value="Category" selected>Category</option>
                         <option value="Market">Market</option>
+                        <option value="SearchTerm">Search Term</option>
                     </select>
                 </div>
                 <div class="control-item">
                     <label for="size-by-select">Size Bubbles By:</label>
-                    <select id="size-by-select">
+                    <select id="size-by-select" class="chart-control">
                         <option value="search_volume_12m_avg" selected>Search Volume (12m Avg)</option>
                         <option value="growth_pct">Growth (%)</option>
                         <option value="results_analysed">Results Analysed</option>
                     </select>
                 </div>
 
-                <h2 style="margin-top: 2rem;">Analysis Summary</h2>
-                <div class="summary-item">
-                    <span class="label">Total Keywords</span>
-                    <span class="value">{{ summary.total_keywords }}</span>
+                <h2 style="margin-top: 2rem;">Filters</h2>
+                <div class="control-item">
+                    <label for="market-filter">Filter by Market:</label>
+                    <select id="market-filter" class="chart-control" multiple></select>
                 </div>
-                <div class="summary-item">
-                    <span class="label">Avg. Sentiment</span>
-                    <span class="value">{{ summary.avg_sentiment }}</span>
+                <div class="control-item">
+                    <label for="category-filter">Filter by Category:</label>
+                    <select id="category-filter" class="chart-control" multiple></select>
                 </div>
+                <div class="control-item">
+                    <label for="searchTerm-filter">Filter by Search Term:</label>
+                    <select id="searchTerm-filter" class="chart-control" multiple></select>
+                </div>
+
+                <button id="reset-filters" class="button reset-btn">Reset Filters</button>
 
                 <div class="actions">
                     <a href="/download-csv/{{ file_id }}" class="button download-btn">Download Data (CSV)</a>
@@ -126,7 +146,6 @@
             </div>
 
             <div class="chart-container">
-                <!-- The interactive chart from Plotly will be injected here -->
                 <div id="bubble-chart">{{ chart_html | safe }}</div>
             </div>
         </div>
@@ -139,35 +158,105 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const chartDiv = document.getElementById('bubble-chart');
-            const chartData = JSON.parse(document.getElementById('chart-data').textContent);
+            const fullData = JSON.parse(document.getElementById('chart-data').textContent);
 
-            const colorSelect = document.getElementById('color-by-select');
-            const sizeSelect = document.getElementById('size-by-select');
+            // References to all controls
+            const controls = {
+                color: document.getElementById('color-by-select'),
+                size: document.getElementById('size-by-select'),
+                market: document.getElementById('market-filter'),
+                category: document.getElementById('category-filter'),
+                searchTerm: document.getElementById('searchTerm-filter'),
+                resetButton: document.getElementById('reset-filters')
+            };
 
-            function updateChart() {
-                const colorBy = colorSelect.value;
-                const sizeBy = sizeSelect.value;
-
-                // The values for marker.color need to be numerical for a colorscale,
-                // or categorical strings that Plotly can map to colors.
-                // We create a numerical mapping for the categorical data.
-                const colorData = chartData[colorBy];
-                const uniqueCategories = [...new Set(colorData)];
-                const colorIndices = colorData.map(val => uniqueCategories.indexOf(val));
-
-                Plotly.restyle(chartDiv, {
-                    'marker.color': [colorIndices],
-                    'marker.size': [chartData[sizeBy]],
+            // --- Populate Filter Dropdowns ---
+            function populateFilter(selectElement, fieldName) {
+                const uniqueValues = [...new Set(fullData[fieldName])].sort();
+                uniqueValues.forEach(val => {
+                    const option = document.createElement('option');
+                    option.value = val;
+                    option.textContent = val;
+                    selectElement.appendChild(option);
                 });
+            }
+            populateFilter(controls.market, 'Market');
+            populateFilter(controls.category, 'Category');
+            populateFilter(controls.searchTerm, 'SearchTerm');
 
-                // Update the legend title
-                Plotly.update(chartDiv, {}, {
-                    'legend.title.text': `Color By: ${colorBy}`
+            // --- Main Update Function ---
+            function updateChart() {
+                // Get selected filter values
+                const getSelectedOptions = (select) => Array.from(select.selectedOptions).map(opt => opt.value);
+                const selected = {
+                    markets: getSelectedOptions(controls.market),
+                    categories: getSelectedOptions(controls.category),
+                    searchTerms: getSelectedOptions(controls.searchTerm)
+                };
+
+                // Create an array of indices to keep from the original data
+                const indicesToKeep = [];
+                const filteredData = Object.keys(fullData).reduce((acc, key) => {
+                    acc[key] = [];
+                    return acc;
+                }, {});
+
+                for (let i = 0; i < fullData.SearchTerm.length; i++) {
+                    const keep =
+                        (selected.markets.length === 0 || selected.markets.includes(fullData.Market[i])) &&
+                        (selected.categories.length === 0 || selected.categories.includes(fullData.Category[i])) &&
+                        (selected.searchTerms.length === 0 || selected.searchTerms.includes(fullData.SearchTerm[i]));
+
+                    if (keep) {
+                        for (const key in fullData) {
+                            filteredData[key].push(fullData[key][i]);
+                        }
+                    }
+                }
+
+                // Get color and size dimensions
+                const colorBy = controls.color.value;
+                const sizeBy = controls.size.value;
+
+                // Use Plotly.react for efficient updates
+                Plotly.react(chartDiv, [{
+                    x: filteredData.sentiment_score,
+                    y: filteredData.growth_pct,
+                    text: filteredData.SearchTerm,
+                    marker: {
+                        color: filteredData[colorBy],
+                        size: filteredData[sizeBy],
+                        sizemode: 'diameter',
+                        sizemin: 4,
+                        sizeref: Math.max(...filteredData[sizeBy]) / (60**2) // Helps in scaling size
+                    },
+                    mode: 'markers',
+                    type: 'scatter',
+                    customdata: filteredData.Market, // Update customdata as well if needed
+                    hoverinfo: 'x+y+text'
+                }], {
+                    title: "Growth vs. Sentiment Analysis",
+                    height: 700,
+                    xaxis: { title: "← Negative Sentiment | Positive Sentiment →" },
+                    yaxis: { title: "← Decline | Growth →" },
+                    legend: { title: { text: `Color By: ${colorBy}` } }
                 });
             }
 
-            colorSelect.addEventListener('change', updateChart);
-            sizeSelect.addEventListener('change', updateChart);
+            // --- Event Listeners ---
+            document.querySelectorAll('.chart-control').forEach(el => {
+                el.addEventListener('change', updateChart);
+            });
+
+            controls.resetButton.addEventListener('click', () => {
+                document.querySelectorAll('.chart-control[multiple]').forEach(select => {
+                    Array.from(select.options).forEach(opt => opt.selected = false);
+                });
+                updateChart();
+            });
+
+            // Initial chart draw (optional, as HTML is already there, but good for consistency)
+            // updateChart();
         });
     </script>
 </body>
